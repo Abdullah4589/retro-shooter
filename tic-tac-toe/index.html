@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#6366f1" />
+<title>Tic Tac Toe</title>
+<style>
+  :root {
+    /* default = "Aurora" theme; overridden by [data-theme] blocks below */
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-2: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.10);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --x: #38bdf8;
+    --o: #f472b6;
+    --accent: #6366f1;
+    --win: #22c55e;
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    --radius: 22px;
+  }
+
+  [data-theme="sunset"] {
+    --bg: #2b1055;
+    --bg-2: #7597de;
+    --surface: rgba(255, 255, 255, 0.08);
+    --surface-2: rgba(255, 255, 255, 0.12);
+    --border: rgba(255, 255, 255, 0.18);
+    --text: #fff7ed;
+    --muted: #fcd9b6;
+    --x: #fbbf24;
+    --o: #fb7185;
+    --accent: #f97316;
+    --win: #34d399;
+  }
+
+  [data-theme="mint"] {
+    --bg: #f0fdf4;
+    --bg-2: #ccfbf1;
+    --surface: rgba(255, 255, 255, 0.75);
+    --surface-2: rgba(255, 255, 255, 0.95);
+    --border: rgba(15, 118, 110, 0.15);
+    --text: #064e3b;
+    --muted: #0f766e;
+    --x: #0d9488;
+    --o: #ec4899;
+    --accent: #14b8a6;
+    --win: #16a34a;
+    --shadow: 0 20px 50px rgba(13, 148, 136, 0.18);
+  }
+
+  [data-theme="mono"] {
+    --bg: #18181b;
+    --bg-2: #27272a;
+    --surface: rgba(255, 255, 255, 0.04);
+    --surface-2: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --x: #f4f4f5;
+    --o: #71717a;
+    --accent: #e4e4e7;
+    --win: #84cc16;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: linear-gradient(135deg, var(--bg), var(--bg-2));
+    background-attachment: fixed;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 4vw, 32px);
+    transition: background 0.5s ease, color 0.3s ease;
+    overflow-x: hidden;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 3vw, 22px);
+  }
+
+  header { text-align: center; }
+
+  h1 {
+    font-size: clamp(1.8rem, 7vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(90deg, var(--x), var(--o));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+  /* ---- controls row ---- */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .seg {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px;
+    backdrop-filter: blur(12px);
+  }
+
+  .seg button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .seg button.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  [data-theme="mint"] .seg button.active,
+  [data-theme="mono"] .seg button.active { color: var(--bg); }
+
+  /* ---- scoreboard ---- */
+  .scoreboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .score {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 8px;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .score.turn { border-color: var(--accent); transform: translateY(-3px); }
+  .score .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .score .value { font-size: 1.6rem; font-weight: 800; margin-top: 2px; }
+  .score.x .value { color: var(--x); }
+  .score.o .value { color: var(--o); }
+
+  /* ---- status ---- */
+  .status {
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    min-height: 1.5em;
+    color: var(--text);
+  }
+  .status .hl-x { color: var(--x); }
+  .status .hl-o { color: var(--o); }
+
+  /* ---- board ---- */
+  .board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(8px, 2.5vw, 14px);
+    aspect-ratio: 1 / 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: clamp(8px, 2.5vw, 14px);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+  }
+
+  .cell {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(2.6rem, 13vw, 4rem);
+    font-weight: 800;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.12s ease, background 0.2s ease, box-shadow 0.2s ease;
+    aspect-ratio: 1 / 1;
+  }
+
+  .cell:hover:not(.filled) { background: var(--border); transform: scale(1.03); }
+  .cell:active:not(.filled) { transform: scale(0.96); }
+  .cell.x { color: var(--x); }
+  .cell.o { color: var(--o); }
+
+  .cell .mark {
+    display: inline-block;
+    animation: pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .cell.win {
+    background: var(--win);
+    color: #fff !important;
+    box-shadow: 0 0 24px var(--win);
+    animation: winpulse 0.6s ease infinite alternate;
+  }
+  @keyframes winpulse { from { box-shadow: 0 0 12px var(--win); } to { box-shadow: 0 0 30px var(--win); } }
+
+  /* ---- footer actions ---- */
+  .actions { display: flex; gap: 10px; }
+
+  .btn {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    transition: transform 0.12s ease, background 0.2s ease;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  [data-theme="mint"] .btn.primary,
+  [data-theme="mono"] .btn.primary { color: var(--bg); }
+
+  .theme-row { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .theme-row .tlabel { font-size: 0.78rem; color: var(--muted); margin-right: 2px; }
+
+  .swatch {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.active { border-color: var(--text); transform: scale(1.12); }
+  .swatch.aurora { background: linear-gradient(135deg, #38bdf8, #f472b6); }
+  .swatch.sunset { background: linear-gradient(135deg, #f97316, #fb7185); }
+  .swatch.mint   { background: linear-gradient(135deg, #14b8a6, #ec4899); }
+  .swatch.mono   { background: linear-gradient(135deg, #fafafa, #71717a); }
+
+  /* ---- win flash overlay ---- */
+  @media (max-width: 380px) {
+    .seg button { padding: 7px 11px; font-size: 0.8rem; }
+  }
+</style>
+</head>
+<body data-theme="aurora">
+  <div class="app">
+    <header>
+      <h1>Tic&nbsp;Tac&nbsp;Toe</h1>
+      <div class="subtitle">Modern · Responsive · Two modes</div>
+    </header>
+
+    <div class="controls">
+      <div class="seg" id="modeSeg">
+        <button data-mode="2p" class="active">2 Players</button>
+        <button data-mode="cpu">vs Computer</button>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <div class="score x" id="scoreX">
+        <div class="label">Player X</div>
+        <div class="value">0</div>
+      </div>
+      <div class="score" id="scoreDraw">
+        <div class="label">Draws</div>
+        <div class="value">0</div>
+      </div>
+      <div class="score o" id="scoreO">
+        <div class="label" id="labelO">Player O</div>
+        <div class="value">0</div>
+      </div>
+    </div>
+
+    <div class="status" id="status">Player <span class="hl-x">X</span> to move</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="actions">
+      <button class="btn" id="resetScores">Reset Scores</button>
+      <button class="btn primary" id="newGame">New Round</button>
+    </div>
+
+    <div class="theme-row">
+      <span class="tlabel">Theme</span>
+      <div class="swatch aurora active" data-set="aurora" title="Aurora"></div>
+      <div class="swatch sunset" data-set="sunset" title="Sunset"></div>
+      <div class="swatch mint" data-set="mint" title="Mint"></div>
+      <div class="swatch mono" data-set="mono" title="Mono"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const WINS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const scoreXEl = document.querySelector('#scoreX .value');
+  const scoreOEl = document.querySelector('#scoreO .value');
+  const scoreDrawEl = document.querySelector('#scoreDraw .value');
+  const labelOEl = document.getElementById('labelO');
+
+  let board, current, active, mode = '2p';
+  let scores = { X: 0, O: 0, draw: 0 };
+
+  function buildCells() {
+    boardEl.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.dataset.i = i;
+      c.addEventListener('click', () => onCell(i));
+      boardEl.appendChild(c);
+    }
+  }
+
+  function newRound() {
+    board = Array(9).fill('');
+    current = 'X';
+    active = true;
+    [...boardEl.children].forEach(c => {
+      c.className = 'cell';
+      c.innerHTML = '';
+    });
+    updateStatus();
+  }
+
+  function updateStatus(text) {
+    document.getElementById('scoreX').classList.toggle('turn', active && current === 'X');
+    document.getElementById('scoreO').classList.toggle('turn', active && current === 'O');
+    if (text) { statusEl.innerHTML = text; return; }
+    const who = mode === 'cpu' && current === 'O' ? 'Computer' : 'Player';
+    statusEl.innerHTML = `${who} <span class="hl-${current.toLowerCase()}">${current}</span> to move`;
+  }
+
+  function onCell(i) {
+    if (!active || board[i]) return;
+    if (mode === 'cpu' && current === 'O') return; // wait for CPU
+    place(i, current);
+    if (postMove()) return;
+    if (mode === 'cpu' && active && current === 'O') {
+      statusEl.innerHTML = 'Computer is thinking…';
+      setTimeout(cpuMove, 380);
+    }
+  }
+
+  function place(i, player) {
+    board[i] = player;
+    const cell = boardEl.children[i];
+    cell.classList.add('filled', player.toLowerCase());
+    cell.innerHTML = `<span class="mark">${player}</span>`;
+  }
+
+  // returns true if game ended
+  function postMove() {
+    const result = evaluate(board);
+    if (result.winner) {
+      active = false;
+      result.line.forEach(idx => boardEl.children[idx].classList.add('win'));
+      scores[result.winner]++;
+      sync();
+      const who = mode === 'cpu' ? (result.winner === 'X' ? 'You win!' : 'Computer wins!') : `Player ${result.winner} wins!`;
+      updateStatus(`<span class="hl-${result.winner.toLowerCase()}">${who}</span> 🎉`);
+      return true;
+    }
+    if (board.every(Boolean)) {
+      active = false;
+      scores.draw++;
+      sync();
+      updateStatus("It's a draw 🤝");
+      return true;
+    }
+    current = current === 'X' ? 'O' : 'X';
+    updateStatus();
+    return false;
+  }
+
+  function cpuMove() {
+    if (!active) return;
+    const i = bestMove(board, 'O');
+    place(i, 'O');
+    postMove();
+  }
+
+  function evaluate(b) {
+    for (const line of WINS) {
+      const [a, c, d] = line;
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return { winner: b[a], line };
+    }
+    return { winner: null, line: [] };
+  }
+
+  // Minimax for an unbeatable computer
+  function bestMove(b, player) {
+    const opp = player === 'O' ? 'X' : 'O';
+    let bestScore = -Infinity, move = -1;
+    for (let i = 0; i < 9; i++) {
+      if (!b[i]) {
+        b[i] = player;
+        const s = minimax(b, 0, false, player, opp);
+        b[i] = '';
+        if (s > bestScore) { bestScore = s; move = i; }
+      }
+    }
+    return move;
+  }
+
+  function minimax(b, depth, isMax, me, opp) {
+    const res = evaluate(b);
+    if (res.winner === me) return 10 - depth;
+    if (res.winner === opp) return depth - 10;
+    if (b.every(Boolean)) return 0;
+
+    if (isMax) {
+      let best = -Infinity;
+      for (let i = 0; i < 9; i++) if (!b[i]) {
+        b[i] = me; best = Math.max(best, minimax(b, depth + 1, false, me, opp)); b[i] = '';
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 9; i++) if (!b[i]) {
+        b[i] = opp; best = Math.min(best, minimax(b, depth + 1, true, me, opp)); b[i] = '';
+      }
+      return best;
+    }
+  }
+
+  function sync() {
+    scoreXEl.textContent = scores.X;
+    scoreOEl.textContent = scores.O;
+    scoreDrawEl.textContent = scores.draw;
+  }
+
+  // ---- mode toggle ----
+  document.getElementById('modeSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    [...e.currentTarget.children].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    labelOEl.textContent = mode === 'cpu' ? 'Computer' : 'Player O';
+    scores = { X: 0, O: 0, draw: 0 };
+    sync();
+    newRound();
+  });
+
+  // ---- buttons ----
+  document.getElementById('newGame').addEventListener('click', newRound);
+  document.getElementById('resetScores').addEventListener('click', () => {
+    scores = { X: 0, O: 0, draw: 0 };
+    sync();
+    newRound();
+  });
+
+  // ---- themes ----
+  document.querySelector('.theme-row').addEventListener('click', (e) => {
+    const sw = e.target.closest('.swatch');
+    if (!sw) return;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    const t = sw.dataset.set;
+    document.body.dataset.theme = t;
+    try { localStorage.setItem('ttt-theme', t); } catch (_) {}
+  });
+
+  // restore saved theme
+  try {
+    const saved = localStorage.getItem('ttt-theme');
+    if (saved) {
+      document.body.dataset.theme = saved;
+      document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.set === saved));
+    }
+  } catch (_) {}
+
+  buildCells();
+  newRound();
+  sync();
+})();
+</script>
+</body>
+</html>
